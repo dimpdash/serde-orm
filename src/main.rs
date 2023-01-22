@@ -1,11 +1,11 @@
 use std::{
     cell::RefCell,
-    rc::{Rc, Weak},
+    rc::{Rc},
     vec,
 };
 
 use crate::{
-    common::{Links, Wrapper},
+    common::{Links},
     domain::{Dog, Person},
 };
 
@@ -39,7 +39,7 @@ fn main() -> Result<(), ()> {
         pet: Rc::clone(&pet),
     };
 
-    let mut config = Config {
+    let config = Config {
         persons: vec![
             Rc::new(RefCell::new(person)),
             Rc::new(RefCell::new(person2)),

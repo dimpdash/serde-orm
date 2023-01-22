@@ -1,13 +1,13 @@
 use std::{
     cell::RefCell,
     fmt::Debug,
-    rc::{Rc, Weak},
+    rc::{Rc},
 };
 
 use crate::{common::KeyLink, ser::serialize_data};
 use crate::{common::Linkable, de::deserialize_data};
 
-use serde::{de, Deserialize};
+use serde::{Deserialize};
 
 use crate::{
     common::{ForeignKey, Links},
