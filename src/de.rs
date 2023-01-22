@@ -1,11 +1,12 @@
 use crate::{common::Linkable, domain::Dog};
 use core::fmt;
 use serde::de::{self, Visitor};
-use std::rc::Rc;
+use std::{cell::RefCell, rc::Rc};
 
-pub fn deserialize_data<'de, D>(deserializer: D) -> Result<Rc<Dog>, D::Error>
+pub fn deserialize_data<'de, D, F>(deserializer: D) -> Result<F, D::Error>
 where
     D: de::Deserializer<'de>,
+    F: Linkable<String, F>,
 {
     struct KeyValueVisitor {}
 
@@ -27,7 +28,7 @@ where
     let visitor = KeyValueVisitor {};
 
     let fk = deserializer.deserialize_str(visitor)?;
-    let dog = Rc::new(Dog::get_fake(fk));
+    let dog = F::get_fake(fk);
     Ok(dog)
 }
 

@@ -2,11 +2,12 @@ use std::rc::Rc;
 
 use serde::ser::Serializer;
 
-use crate::{common::Linkable, domain::Dog};
+use crate::common::{KeyLink, Linkable};
 
-pub fn serialize_data<S>(dog: &Dog, s: S) -> Result<S::Ok, S::Error>
+pub fn serialize_data<S, F>(dog: &F, s: S) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
+    F: KeyLink<String>,
 {
     let fk = dog.get_key();
     s.serialize_str(fk.as_str())

@@ -1,7 +1,5 @@
 use std::{
     cell::RefCell,
-    collections::BTreeMap,
-    default,
     rc::{Rc, Weak},
     vec,
 };
@@ -19,13 +17,13 @@ pub mod ser;
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 struct Config {
     persons: Vec<Rc<RefCell<Person>>>,
-    pets: Vec<Rc<Dog>>,
+    pets: Vec<Rc<RefCell<Dog>>>,
 }
 
 fn main() -> Result<(), ()> {
-    let pet = Rc::new(Dog {
+    let pet = Rc::new(RefCell::new(Dog {
         name: "buddy".to_string(),
-    });
+    }));
 
     let person = Person {
         id: 0,
@@ -34,8 +32,18 @@ fn main() -> Result<(), ()> {
         pet: Rc::clone(&pet),
     };
 
+    let person2 = Person {
+        id: 1,
+        name: "matthew".to_string(),
+        data: 10,
+        pet: Rc::clone(&pet),
+    };
+
     let mut config = Config {
-        persons: vec![Rc::new(RefCell::new(person))],
+        persons: vec![
+            Rc::new(RefCell::new(person)),
+            Rc::new(RefCell::new(person2)),
+        ],
         pets: vec![pet],
     };
 
@@ -50,6 +58,8 @@ fn main() -> Result<(), ()> {
     for person in config.persons.iter() {
         person.borrow_mut().convert_fks_to_objs(&config);
     }
+
+    config.pets[0].borrow_mut().name = "Joe".to_string();
 
     println!("{:?}", config);
 
