@@ -13,3 +13,8 @@ pub struct Wrapper<Config> {
     pub me: Person,
     pub obj_list: Vec<Box<dyn Links<Config>>>,
 }
+
+pub trait Linkable<Key, Obj> {
+    fn get_key(&self) -> Key;
+    fn get_fake(key: String) -> Obj;
+}

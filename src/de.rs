@@ -1,25 +1,9 @@
-use crate::{
-    common::Wrapper,
-    domain::{Dog, Link, Person},
-    Config,
-};
+use crate::{common::Linkable, domain::Dog};
 use core::fmt;
-use serde::{
-    de::{self, DeserializeSeed, Deserializer, Expected, MapAccess, Visitor},
-    Deserialize,
-};
+use serde::de::{self, Visitor};
 use std::rc::Rc;
 
-#[derive(Debug)]
-enum Field {
-    Type,
-    Pet,
-    Id,
-    Name,
-    Data,
-}
-
-pub fn deserialize_data<'de, D>(deserializer: D) -> Result<Link<String, Rc<Dog>>, D::Error>
+pub fn deserialize_data<'de, D>(deserializer: D) -> Result<Rc<Dog>, D::Error>
 where
     D: de::Deserializer<'de>,
 {
@@ -42,152 +26,142 @@ where
 
     let visitor = KeyValueVisitor {};
 
-    let link = Link::FK(deserializer.deserialize_str(visitor)?);
-    Ok(link)
+    let fk = deserializer.deserialize_str(visitor)?;
+    let dog = Rc::new(Dog::get_fake(fk));
+    Ok(dog)
 }
 
-const NAME: &'static str = "Person";
+// const NAME: &'static str = "Person";
 
-const FIELDS: &'static [&'static str] = &["id", "name", "data", "type", "pet"];
+// const FIELDS: &'static [&'static str] = &["id", "name", "data", "type", "pet"];
 
-struct FieldVisitor;
+// struct FieldVisitor;
 
-impl<'de> Visitor<'de> for FieldVisitor {
-    type Value = Field;
+// impl<'de> Visitor<'de> for FieldVisitor {
+//     type Value = Field;
 
-    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        formatter.write_str("`secs` or `nanos`")
-    }
+//     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+//         formatter.write_str("`secs` or `nanos`")
+//     }
 
-    fn visit_str<E>(self, value: &str) -> Result<Field, E>
-    where
-        E: de::Error,
-    {
-        println!("{}", value);
-        match value {
-            "type" => Ok(Field::Type),
-            "pet" => Ok(Field::Pet),
-            "id" => Ok(Field::Id),
-            "name" => Ok(Field::Name),
-            "data" => Ok(Field::Data),
-            _ => Err(de::Error::unknown_field(value, FIELDS)),
-        }
-    }
-}
+//     fn visit_str<E>(self, value: &str) -> Result<Field, E>
+//     where
+//         E: de::Error,
+//     {
+//         println!("{}", value);
+//         match value {
+//             "type" => Ok(Field::Type),
+//             "pet" => Ok(Field::Pet),
+//             "id" => Ok(Field::Id),
+//             "name" => Ok(Field::Name),
+//             "data" => Ok(Field::Data),
+//             _ => Err(de::Error::unknown_field(value, FIELDS)),
+//         }
+//     }
+// }
 
-impl<'de> Deserialize<'de> for Field {
-    fn deserialize<D>(deserializer: D) -> Result<Field, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        deserializer.deserialize_identifier(FieldVisitor)
-    }
-}
+// impl<'de> Deserialize<'de> for Field {
+//     fn deserialize<D>(deserializer: D) -> Result<Field, D::Error>
+//     where
+//         D: Deserializer<'de>,
+//     {
+//         deserializer.deserialize_identifier(FieldVisitor)
+//     }
+// }
 
-impl<'de> Deserialize<'de> for Wrapper<Config> {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        // let visitor = PersonVisitor {};
+// impl<'de> Deserialize<'de> for Wrapper<Config> {
+//     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+//     where
+//         D: Deserializer<'de>,
+//     {
+//         let person = Person::deserialize(deserializer)?;
 
-        // let person_with_key = deserializer
-        //     .deserialize_struct(NAME, FIELDS, visitor)
-        //     .unwrap();
+//         Ok(Wrapper {
+//             me: person,
+//             obj_list: vec![],
+//         })
+//     }
+// }
 
-        let person = Person::deserialize(deserializer)?;
+// struct PersonVisitor {}
 
-        println!("{:?}", person);
+// // This is the trait that Deserializers are going to be driving. There
+// // is one method for each type of data that our type knows how to
+// // deserialize from. There are many other methods that are not
+// // implemented here, for example deserializing from integers or strings.
+// // By default those methods will return an error, which makes sense
+// // because we cannot deserialize a MyMap from an integer or string.
+// impl<'de> Visitor<'de> for PersonVisitor {
+//     // The type that our Visitor is going to produce.
+//     type Value = Person;
 
-        // let person = deserializer
-        //     .deserialize_struct(NAME, FIELDS, visitor)
-        //     .unwrap();
-        Ok(Wrapper {
-            me: person,
-            obj_list: vec![],
-        })
-    }
-}
+//     // Format a message stating what data this Visitor expects to receive.
+//     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+//         formatter.write_str("a very special map")
+//     }
 
-struct PersonVisitor {}
+//     // Deserialize MyMap from an abstract "map" provided by the
+//     // Deserializer. The MapAccess input is a callback provided by
+//     // the Deserializer to let us see each entry in the map.
+//     fn visit_map<M>(self, mut access: M) -> Result<Self::Value, M::Error>
+//     where
+//         M: MapAccess<'de>,
+//     {
+//         println!("HERE");
+//         let mut id = None;
+//         let mut name = None;
+//         let mut data = None;
+//         let mut pet_key = None;
+//         while let Some(key) = access.next_key()? {
+//             match key {
+//                 Field::Id => {
+//                     if id.is_some() {
+//                         return Err(de::Error::duplicate_field("id"));
+//                     }
+//                     id = Some(access.next_value()?);
+//                 }
+//                 Field::Name => {
+//                     if name.is_some() {
+//                         return Err(de::Error::duplicate_field("name"));
+//                     }
+//                     name = Some(access.next_value()?);
+//                 }
+//                 Field::Data => {
+//                     if data.is_some() {
+//                         return Err(de::Error::duplicate_field("data"));
+//                     }
+//                     data = Some(access.next_value()?);
+//                 }
+//                 Field::Pet => {
+//                     if pet_key.is_some() {
+//                         return Err(de::Error::duplicate_field("pet"));
+//                     }
+//                     pet_key = Some(access.next_value()?);
+//                     //do nothing
+//                 }
+//                 Field::Type => {
+//                     println!("HERE4");
+//                     //do nothing
+//                     let _: String = access.next_value()?;
+//                 }
+//             }
+//         }
+//         println!("HERE2");
+//         let name = name.ok_or_else(|| de::Error::missing_field("name"))?;
+//         let id = id.ok_or_else(|| de::Error::missing_field("id"))?;
+//         let data = data.ok_or_else(|| de::Error::missing_field("data"))?;
+//         let pet_key = pet_key.ok_or_else(|| de::Error::missing_field("pet"))?;
 
-// This is the trait that Deserializers are going to be driving. There
-// is one method for each type of data that our type knows how to
-// deserialize from. There are many other methods that are not
-// implemented here, for example deserializing from integers or strings.
-// By default those methods will return an error, which makes sense
-// because we cannot deserialize a MyMap from an integer or string.
-impl<'de> Visitor<'de> for PersonVisitor {
-    // The type that our Visitor is going to produce.
-    type Value = Person;
+//         let person = Person {
+//             id,
+//             data,
+//             name,
+//             pet: Link::FK(pet_key),
+//         };
 
-    // Format a message stating what data this Visitor expects to receive.
-    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        formatter.write_str("a very special map")
-    }
-
-    // Deserialize MyMap from an abstract "map" provided by the
-    // Deserializer. The MapAccess input is a callback provided by
-    // the Deserializer to let us see each entry in the map.
-    fn visit_map<M>(self, mut access: M) -> Result<Self::Value, M::Error>
-    where
-        M: MapAccess<'de>,
-    {
-        println!("HERE");
-        let mut id = None;
-        let mut name = None;
-        let mut data = None;
-        let mut pet_key = None;
-        while let Some(key) = access.next_key()? {
-            match key {
-                Field::Id => {
-                    if id.is_some() {
-                        return Err(de::Error::duplicate_field("id"));
-                    }
-                    id = Some(access.next_value()?);
-                }
-                Field::Name => {
-                    if name.is_some() {
-                        return Err(de::Error::duplicate_field("name"));
-                    }
-                    name = Some(access.next_value()?);
-                }
-                Field::Data => {
-                    if data.is_some() {
-                        return Err(de::Error::duplicate_field("data"));
-                    }
-                    data = Some(access.next_value()?);
-                }
-                Field::Pet => {
-                    if pet_key.is_some() {
-                        return Err(de::Error::duplicate_field("pet"));
-                    }
-                    pet_key = Some(access.next_value()?);
-                    //do nothing
-                }
-                Field::Type => {
-                    println!("HERE4");
-                    //do nothing
-                    let _: String = access.next_value()?;
-                }
-            }
-        }
-        println!("HERE2");
-        let name = name.ok_or_else(|| de::Error::missing_field("name"))?;
-        let id = id.ok_or_else(|| de::Error::missing_field("id"))?;
-        let data = data.ok_or_else(|| de::Error::missing_field("data"))?;
-        let pet_key = pet_key.ok_or_else(|| de::Error::missing_field("pet"))?;
-
-        let person = Person {
-            id,
-            data,
-            name,
-            pet: Link::FK(pet_key),
-        };
-
-        Ok(person)
-    }
-}
+//         Ok(person)
+//     }
+// }
 
 // struct TaggedVisitor<T: ?Sized + 'static> {
 //     trait_object: &'static str,

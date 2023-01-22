@@ -8,7 +8,7 @@ use std::{
 
 use crate::{
     common::{Links, Wrapper},
-    domain::{Dog, Link, Person},
+    domain::{Dog, Person},
 };
 
 pub mod common;
@@ -18,7 +18,7 @@ pub mod ser;
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 struct Config {
-    persons: Vec<Rc<RefCell<Wrapper<Config>>>>,
+    persons: Vec<Rc<RefCell<Person>>>,
     pets: Vec<Rc<Dog>>,
 }
 
@@ -31,16 +31,11 @@ fn main() -> Result<(), ()> {
         id: 0,
         name: "dan".to_string(),
         data: 10,
-        pet: Link::OBJ(Rc::clone(&pet)),
-    };
-
-    let wrapper = Wrapper {
-        me: person,
-        obj_list: vec![],
+        pet: Rc::clone(&pet),
     };
 
     let mut config = Config {
-        persons: vec![Rc::new(RefCell::new(wrapper))],
+        persons: vec![Rc::new(RefCell::new(person))],
         pets: vec![pet],
     };
 
@@ -53,7 +48,7 @@ fn main() -> Result<(), ()> {
     println!("{:?}", wrapper);
 
     for person in config.persons.iter() {
-        person.borrow_mut().me.convert_fks_to_objs(&config);
+        person.borrow_mut().convert_fks_to_objs(&config);
     }
 
     println!("{:?}", config);
