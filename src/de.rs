@@ -1,14 +1,16 @@
 use crate::{
     common::Wrapper,
-    domain::{Dog, Person},
+    domain::{Dog, Link, Person},
+    Config,
 };
 use core::fmt;
 use serde::{
     de::{self, DeserializeSeed, Deserializer, Expected, MapAccess, Visitor},
     Deserialize,
 };
-use std::collections::{BTreeMap, HashMap};
+use std::rc::Rc;
 
+#[derive(Debug)]
 enum Field {
     Type,
     Pet,
@@ -17,51 +19,93 @@ enum Field {
     Data,
 }
 
+pub fn deserialize_data<'de, D>(deserializer: D) -> Result<Link<String, Rc<Dog>>, D::Error>
+where
+    D: de::Deserializer<'de>,
+{
+    struct KeyValueVisitor {}
+
+    impl<'de> Visitor<'de> for KeyValueVisitor {
+        type Value = String;
+
+        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+            write!(formatter, "a string containing describing key to an object")
+        }
+
+        fn visit_str<E>(self, s: &str) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            Ok(s.to_owned())
+        }
+    }
+
+    let visitor = KeyValueVisitor {};
+
+    let link = Link::FK(deserializer.deserialize_str(visitor)?);
+    Ok(link)
+}
+
+const NAME: &'static str = "Person";
+
 const FIELDS: &'static [&'static str] = &["id", "name", "data", "type", "pet"];
+
+struct FieldVisitor;
+
+impl<'de> Visitor<'de> for FieldVisitor {
+    type Value = Field;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        formatter.write_str("`secs` or `nanos`")
+    }
+
+    fn visit_str<E>(self, value: &str) -> Result<Field, E>
+    where
+        E: de::Error,
+    {
+        println!("{}", value);
+        match value {
+            "type" => Ok(Field::Type),
+            "pet" => Ok(Field::Pet),
+            "id" => Ok(Field::Id),
+            "name" => Ok(Field::Name),
+            "data" => Ok(Field::Data),
+            _ => Err(de::Error::unknown_field(value, FIELDS)),
+        }
+    }
+}
 
 impl<'de> Deserialize<'de> for Field {
     fn deserialize<D>(deserializer: D) -> Result<Field, D::Error>
     where
         D: Deserializer<'de>,
     {
-        struct FieldVisitor;
-
-        impl<'de> Visitor<'de> for FieldVisitor {
-            type Value = Field;
-
-            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-                formatter.write_str("`secs` or `nanos`")
-            }
-
-            fn visit_str<E>(self, value: &str) -> Result<Field, E>
-            where
-                E: de::Error,
-            {
-                println!("{}", value);
-                match value {
-                    "type" => Ok(Field::Type),
-                    "pet" => Ok(Field::Pet),
-                    "id" => Ok(Field::Id),
-                    "name" => Ok(Field::Name),
-                    "data" => Ok(Field::Data),
-                    _ => Err(de::Error::unknown_field(value, FIELDS)),
-                }
-            }
-        }
-
         deserializer.deserialize_identifier(FieldVisitor)
     }
 }
 
-impl<'de> Deserialize<'de> for Wrapper {
+impl<'de> Deserialize<'de> for Wrapper<Config> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
     {
-        let visitor = PersonVisitor {};
+        // let visitor = PersonVisitor {};
 
-        let person = deserializer.deserialize_map(visitor).unwrap();
-        Ok(Wrapper { me: person })
+        // let person_with_key = deserializer
+        //     .deserialize_struct(NAME, FIELDS, visitor)
+        //     .unwrap();
+
+        let person = Person::deserialize(deserializer)?;
+
+        println!("{:?}", person);
+
+        // let person = deserializer
+        //     .deserialize_struct(NAME, FIELDS, visitor)
+        //     .unwrap();
+        Ok(Wrapper {
+            me: person,
+            obj_list: vec![],
+        })
     }
 }
 
@@ -93,9 +137,7 @@ impl<'de> Visitor<'de> for PersonVisitor {
         let mut id = None;
         let mut name = None;
         let mut data = None;
-        let mut pet = Dog {
-            name: "me".to_string(),
-        };
+        let mut pet_key = None;
         while let Some(key) = access.next_key()? {
             match key {
                 Field::Id => {
@@ -117,9 +159,10 @@ impl<'de> Visitor<'de> for PersonVisitor {
                     data = Some(access.next_value()?);
                 }
                 Field::Pet => {
-                    println!("HERE3");
-                    let dog_name: String = access.next_value()?;
-                    pet = Dog { name: dog_name }
+                    if pet_key.is_some() {
+                        return Err(de::Error::duplicate_field("pet"));
+                    }
+                    pet_key = Some(access.next_value()?);
                     //do nothing
                 }
                 Field::Type => {
@@ -133,11 +176,13 @@ impl<'de> Visitor<'de> for PersonVisitor {
         let name = name.ok_or_else(|| de::Error::missing_field("name"))?;
         let id = id.ok_or_else(|| de::Error::missing_field("id"))?;
         let data = data.ok_or_else(|| de::Error::missing_field("data"))?;
+        let pet_key = pet_key.ok_or_else(|| de::Error::missing_field("pet"))?;
+
         let person = Person {
             id,
             data,
             name,
-            pet,
+            pet: Link::FK(pet_key),
         };
 
         Ok(person)

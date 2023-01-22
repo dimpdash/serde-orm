@@ -9,5 +9,5 @@ edition = "2021"
 erased-serde = { version = "0.3", default-features = false, features = ["alloc"] }
 inventory = "0.3"
 once_cell = { version = "1.0", default-features = false, features = ["alloc"] }
-serde = { version = "1.0", default-features = false, features = ["alloc", "derive"] }
+serde = { version = "1.0", default-features = false, features = ["alloc", "derive", "rc"] }
 serde_yaml = "0.9.16"

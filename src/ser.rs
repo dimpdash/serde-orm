@@ -6,7 +6,7 @@ use serde::ser::{
 const tag_name: &'static str = "type";
 const variant_name: &'static str = "Person";
 
-impl serde::Serialize for Wrapper {
+impl serde::Serialize for Wrapper<Config> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -27,6 +27,7 @@ use std::marker::PhantomData;
 use crate::{
     common::{ForeignKey, Links, Wrapper},
     domain::Person,
+    Config,
 };
 
 pub(crate) const DEFAULT_KEY: &str = "value";
