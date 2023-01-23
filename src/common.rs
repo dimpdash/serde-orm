@@ -1,17 +1,10 @@
-use std::fmt::Debug;
+use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
-use crate::domain::Person;
 pub type ForeignKey = (String, String);
 
 pub trait Links<Config>: Debug {
     fn get_foreign_keys(&self) -> Vec<ForeignKey>;
     fn convert_fks_to_objs(&mut self, config: &Config);
-}
-
-#[derive(Debug)]
-pub struct Wrapper<Config> {
-    pub me: Person,
-    pub obj_list: Vec<Box<dyn Links<Config>>>,
 }
 
 pub trait Linkable<Key, Obj>: KeyLink<Key> {
@@ -23,4 +16,40 @@ where
     Key: ?Sized,
 {
     fn get_key(&self) -> Key;
+}
+
+impl<T, K> KeyLink<K> for Rc<T>
+where
+    T: KeyLink<K>,
+{
+    fn get_key(&self) -> K {
+        self.as_ref().get_key()
+    }
+}
+
+impl<T, K> KeyLink<K> for RefCell<T>
+where
+    T: KeyLink<K>,
+{
+    fn get_key(&self) -> K {
+        self.borrow().get_key()
+    }
+}
+
+impl<T, K, O> Linkable<K, RefCell<O>> for RefCell<T>
+where
+    T: Linkable<K, O>,
+{
+    fn get_fake(key: String) -> RefCell<O> {
+        RefCell::new(T::get_fake(key))
+    }
+}
+
+impl<T, K, O> Linkable<K, Rc<O>> for Rc<T>
+where
+    T: Linkable<K, O>,
+{
+    fn get_fake(key: String) -> Rc<O> {
+        Rc::new(T::get_fake(key))
+    }
 }
