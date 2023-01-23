@@ -1,11 +1,7 @@
-use std::{
-    cell::RefCell,
-    rc::{Rc},
-    vec,
-};
+use std::{cell::RefCell, rc::Rc, vec};
 
 use crate::{
-    common::{Links},
+    common::Links,
     domain::{Dog, Person},
 };
 
@@ -47,6 +43,12 @@ fn main() -> Result<(), ()> {
         pets: vec![pet],
     };
 
+    let mut linked: Vec<Rc<RefCell<dyn Links<Config>>>> = vec![];
+
+    for p in &config.persons {
+        linked.push(p.clone());
+    }
+
     let yaml = serde_yaml::to_string(&config).unwrap();
 
     println!("{}", &yaml);
@@ -55,8 +57,8 @@ fn main() -> Result<(), ()> {
 
     println!("{:?}", wrapper);
 
-    for person in config.persons.iter() {
-        person.borrow_mut().convert_fks_to_objs(&config);
+    for obj_with_links in &linked {
+        obj_with_links.borrow_mut().convert_fks_to_objs(&config);
     }
 
     config.pets[0].borrow_mut().name = "Joe".to_string();
