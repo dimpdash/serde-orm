@@ -1,3 +1,4 @@
+use std::rc::Weak;
 use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
 use serde_orm::{common::KeyLink, ser::serialize_data};
@@ -20,7 +21,7 @@ pub struct Person {
     pub data: i32,
     #[serde(deserialize_with = "deserialize_data")]
     #[serde(serialize_with = "serialize_data")]
-    pub pet: Rc<RefCell<Dog>>,
+    pub pet: Weak<RefCell<Dog>>,
 }
 
 #[derive(Default, Debug, serde::Serialize, Deserialize)]
@@ -52,7 +53,7 @@ impl Links<Config> for Person {
 
     fn convert_fks_to_objs(&mut self, config: &Config) {
         for pet in config.pets.iter() {
-            let pet = Rc::clone(pet);
+            let pet = Rc::downgrade(pet);
             self.pet = pet;
         }
     }

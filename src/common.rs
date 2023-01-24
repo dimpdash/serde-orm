@@ -1,4 +1,8 @@
-use std::{cell::RefCell, fmt::Debug, rc::Rc};
+use std::{
+    cell::RefCell,
+    fmt::Debug,
+    rc::{Rc, Weak},
+};
 
 pub type ForeignKey = (String, String);
 
@@ -51,5 +55,24 @@ where
 {
     fn get_fake(key: String) -> Rc<O> {
         Rc::new(T::get_fake(key))
+    }
+}
+
+impl<T, K, O> Linkable<K, Weak<O>> for Weak<T>
+where
+    T: Linkable<K, O>,
+{
+    fn get_fake(key: String) -> Weak<O> {
+        let f = T::get_fake(key);
+        Weak::new()
+    }
+}
+
+impl<T, K> KeyLink<K> for Weak<T>
+where
+    T: KeyLink<K>,
+{
+    fn get_key(&self) -> K {
+        self.upgrade().unwrap().get_key()
     }
 }

@@ -19,14 +19,14 @@ mod simple {
             id: 0,
             name: "dan".to_string(),
             data: 10,
-            pet: Rc::clone(&pet),
+            pet: Rc::downgrade(&pet),
         };
 
         let person2 = Person {
             id: 1,
             name: "matthew".to_string(),
             data: 10,
-            pet: Rc::clone(&pet),
+            pet: Rc::downgrade(&pet),
         };
 
         let config = Config {
