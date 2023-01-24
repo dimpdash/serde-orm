@@ -4,7 +4,7 @@ use std::{cell::RefCell, fmt::Debug, rc::Rc};
 use serde_orm::{common::KeyLink, ser::serialize_data};
 use serde_orm::{common::Linkable, de::deserialize_data};
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use serde_orm::common::{ForeignKey, Links};
 
@@ -14,8 +14,23 @@ pub struct Config {
     pub pets: Vec<Rc<RefCell<Dog>>>,
 }
 
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+pub struct RoommateConfig {
+    pub persons: Vec<Rc<RefCell<Roomate>>>,
+    pub pets: Vec<Rc<RefCell<Dog>>>,
+}
+
 #[derive(Debug, serde::Serialize, Deserialize)]
 pub struct Person {
+    pub id: i32,
+    pub name: String,
+    pub data: i32,
+    #[serde(deserialize_with = "deserialize_data")]
+    #[serde(serialize_with = "serialize_data")]
+    pub pet: Rc<RefCell<Dog>>,
+}
+#[derive(Debug, serde::Serialize, Deserialize)]
+pub struct Roomate {
     pub id: i32,
     pub name: String,
     pub data: i32,
@@ -53,8 +68,20 @@ impl Links<Config> for Person {
 
     fn convert_fks_to_objs(&mut self, config: &Config) {
         for pet in config.pets.iter() {
-            let pet = Rc::downgrade(pet);
-            self.pet = pet;
+            self.pet = pet.clone();
+        }
+    }
+}
+
+impl Links<RoommateConfig> for Roomate {
+    fn get_foreign_keys(&self) -> Vec<ForeignKey> {
+        let key = self.pet.get_key();
+        vec![("pet".to_string(), key)]
+    }
+
+    fn convert_fks_to_objs(&mut self, config: &RoommateConfig) {
+        for pet in config.pets.iter() {
+            self.pet = Rc::downgrade(&pet);
         }
     }
 }

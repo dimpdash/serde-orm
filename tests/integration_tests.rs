@@ -7,6 +7,13 @@ use serde_orm::common::Links;
 use self::common::domain::{Dog, Person};
 #[cfg(test)]
 mod simple {
+    use std::collections::HashMap;
+
+    use serde::{Deserialize, Serialize};
+    use serde_orm::common::KeyLink;
+
+    use crate::common::domain::{Roomate, RoommateConfig};
+
     use self::common::domain::Config;
     use super::*;
     #[test]
@@ -19,14 +26,14 @@ mod simple {
             id: 0,
             name: "dan".to_string(),
             data: 10,
-            pet: Rc::downgrade(&pet),
+            pet: pet.clone(),
         };
 
         let person2 = Person {
             id: 1,
             name: "matthew".to_string(),
             data: 10,
-            pet: Rc::downgrade(&pet),
+            pet: pet.clone(),
         };
 
         let config = Config {
@@ -38,6 +45,46 @@ mod simple {
         };
 
         let mut linked: Vec<Rc<RefCell<dyn Links<Config>>>> = vec![];
+
+        for p in &config.persons {
+            linked.push(p.clone());
+        }
+
+        let yaml = serde_yaml::to_string(&config).unwrap();
+
+        println!("{}", &yaml);
+
+        let wrapper: Config = serde_yaml::from_str(&yaml).unwrap();
+
+        println!("{:?}", wrapper);
+
+        for obj_with_links in &linked {
+            obj_with_links.borrow_mut().convert_fks_to_objs(&config);
+        }
+
+        config.pets[0].borrow_mut().name = "Joe".to_string();
+
+        println!("{:?}", config);
+    }
+
+    fn weak() {
+        let pet = Rc::new(RefCell::new(Dog {
+            name: "buddy".to_string(),
+        }));
+
+        let person = Roomate {
+            id: 0,
+            name: "dan".to_string(),
+            data: 10,
+            pet: Rc::downgrade(&pet),
+        };
+
+        let config = RoommateConfig {
+            persons: vec![Rc::new(RefCell::new(person))],
+            pets: vec![pet],
+        };
+
+        let mut linked: Vec<Rc<RefCell<dyn Links<_>>>> = vec![];
 
         for p in &config.persons {
             linked.push(p.clone());

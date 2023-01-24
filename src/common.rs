@@ -63,8 +63,8 @@ where
     T: Linkable<K, O>,
 {
     fn get_fake(key: String) -> Weak<O> {
-        let f = T::get_fake(key);
-        Weak::new()
+        let fake = T::get_fake(key);
+        Rc::downgrade(&Rc::new(fake))
     }
 }
 

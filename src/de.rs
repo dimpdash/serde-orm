@@ -1,6 +1,7 @@
 use crate::common::Linkable;
 use core::fmt;
 use serde::de::{self, Visitor};
+use std::collections::HashMap;
 
 pub fn deserialize_data<'de, D, F>(deserializer: D) -> Result<F, D::Error>
 where
