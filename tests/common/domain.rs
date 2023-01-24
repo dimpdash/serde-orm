@@ -39,7 +39,7 @@ pub struct Roomate {
     pub pet: Weak<RefCell<Dog>>,
 }
 
-#[derive(Default, Debug, serde::Serialize, Deserialize)]
+#[derive(Default, Debug, serde::Serialize, Deserialize, PartialEq, Eq)]
 pub struct Dog {
     pub name: String,
 }

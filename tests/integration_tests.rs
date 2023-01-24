@@ -67,6 +67,7 @@ mod simple {
         println!("{:?}", config);
     }
 
+    #[test]
     fn weak() {
         let pet = Rc::new(RefCell::new(Dog {
             name: "buddy".to_string(),
@@ -94,16 +95,17 @@ mod simple {
 
         println!("{}", &yaml);
 
-        let wrapper: Config = serde_yaml::from_str(&yaml).unwrap();
-
-        println!("{:?}", wrapper);
-
         for obj_with_links in &linked {
             obj_with_links.borrow_mut().convert_fks_to_objs(&config);
         }
 
         config.pets[0].borrow_mut().name = "Joe".to_string();
 
+        let roommate_pet = &config.persons[0].borrow().pet.upgrade().unwrap();
+        let config_pet = &config.pets[0];
+        assert_eq!(roommate_pet, config_pet);
+
+        println!("{:?}", roommate_pet);
         println!("{:?}", config);
     }
 }
