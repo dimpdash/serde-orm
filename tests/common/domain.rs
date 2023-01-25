@@ -1,3 +1,4 @@
+use std::mem::MaybeUninit;
 use std::rc::Weak;
 use std::{cell::RefCell, fmt::Debug, rc::Rc};
 
@@ -84,21 +85,17 @@ pub struct Dog {
     pub name: String,
 }
 
-// #[derive(Debug)]
-// pub struct Parent {
-//     pub name: String,
-//     #[serde(deserialize_with = "deserialize_data")]
-//     #[serde(serialize_with = "serialize_data")]
-//     pub child: Rc<RefCell<Child>,
-// }
+#[derive(Debug, Default, serde::Serialize, Deserialize)]
+pub struct Partner {
+    pub name: String,
+    #[serde(deserialize_with = "deserialize_data")]
+    #[serde(serialize_with = "serialize_data")]
+    pub partner: Weak<RefCell<Partner>>,
+}
 
-// #[derive(Debug)]
-// pub struct Child {
-//     pub name: String,
-//     #[serde(deserialize_with = "deserialize_data")]
-//     #[serde(serialize_with = "serialize_data")]
-//     pub parent: Rc<RefCell<Parent>,
-// }
+pub struct PartnerConfig {
+    pub partners: Vec<Rc<RefCell<Partner>>>,
+}
 
 impl Links<Config> for Person {
     fn get_foreign_keys(&self) -> Vec<ForeignKey> {
@@ -126,19 +123,18 @@ impl Links<RoommateConfig> for Roomate {
     }
 }
 
-// impl Links<Config> for Parent {
-//     fn get_foreign_keys(&self) -> Vec<ForeignKey> {
-//         let key = self.child.borrow().name;
-//         vec![("pet".to_string(), key)]
-//     }
+impl Links<PartnerConfig> for Partner {
+    fn get_foreign_keys(&self) -> Vec<ForeignKey> {
+        let key = self.partner.upgrade().unwrap().borrow().name.clone();
+        vec![("pet".to_string(), key)]
+    }
 
-//     fn convert_fks_to_objs(&mut self, config: &Config) {
-//         for pet in config.pets.iter() {
-//             let pet = Rc::clone(pet);
-//             self.pet = pet;
-//         }
-//     }
-// }
+    fn convert_fks_to_objs(&mut self, config: &PartnerConfig) {
+        for pet in config.partners.iter() {
+            self.partner = Rc::downgrade(&pet);
+        }
+    }
+}
 
 impl Linkable<String, Self> for Dog {
     fn get_fake(key: String) -> Self {
@@ -146,7 +142,26 @@ impl Linkable<String, Self> for Dog {
     }
 }
 
+impl Linkable<String, Self> for Partner {
+    fn get_fake(key: String) -> Self {
+        let partner = unsafe {
+            let partner: MaybeUninit<Weak<RefCell<Partner>>> = MaybeUninit::uninit();
+            Partner {
+                name: key,
+                partner: partner.assume_init(),
+            }
+        };
+        partner
+    }
+}
+
 impl KeyLink<String> for Dog {
+    fn get_key(&self) -> String {
+        self.name.clone()
+    }
+}
+
+impl KeyLink<String> for Partner {
     fn get_key(&self) -> String {
         self.name.clone()
     }
