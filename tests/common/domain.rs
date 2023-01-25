@@ -8,10 +8,30 @@ use serde::{Deserialize, Serialize};
 
 use serde_orm::common::{ForeignKey, Links};
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
 pub struct Config {
     pub persons: Vec<Rc<RefCell<Person>>>,
     pub pets: Vec<Rc<RefCell<Dog>>>,
+}
+
+impl Config {
+    fn get_items_needing_links(&self) -> Vec<Rc<RefCell<dyn Links<Self>>>> {
+        let mut linked: Vec<Rc<RefCell<dyn Links<Self>>>> = vec![];
+
+        for p in &self.persons {
+            linked.push(p.clone());
+        }
+
+        linked
+    }
+
+    pub fn link_items(&self) {
+        let linked = self.get_items_needing_links();
+
+        for obj_with_links in &linked {
+            obj_with_links.borrow_mut().convert_fks_to_objs(&self);
+        }
+    }
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
@@ -20,7 +40,27 @@ pub struct RoommateConfig {
     pub pets: Vec<Rc<RefCell<Dog>>>,
 }
 
-#[derive(Debug, serde::Serialize, Deserialize)]
+impl RoommateConfig {
+    fn get_items_needing_links(&self) -> Vec<Rc<RefCell<dyn Links<Self>>>> {
+        let mut linked: Vec<Rc<RefCell<dyn Links<Self>>>> = vec![];
+
+        for p in &self.persons {
+            linked.push(p.clone());
+        }
+
+        linked
+    }
+
+    pub fn link_items(&self) {
+        let linked = self.get_items_needing_links();
+
+        for obj_with_links in &linked {
+            obj_with_links.borrow_mut().convert_fks_to_objs(&self);
+        }
+    }
+}
+
+#[derive(Debug, serde::Serialize, Deserialize, PartialEq, Eq)]
 pub struct Person {
     pub id: i32,
     pub name: String,

@@ -44,27 +44,18 @@ mod simple {
             pets: vec![pet],
         };
 
-        let mut linked: Vec<Rc<RefCell<dyn Links<Config>>>> = vec![];
-
-        for p in &config.persons {
-            linked.push(p.clone());
-        }
-
         let yaml = serde_yaml::to_string(&config).unwrap();
 
         println!("{}", &yaml);
 
-        let wrapper: Config = serde_yaml::from_str(&yaml).unwrap();
+        let deserialised_config: Config = serde_yaml::from_str(&yaml).unwrap();
 
-        println!("{:?}", wrapper);
+        deserialised_config.link_items();
 
-        for obj_with_links in &linked {
-            obj_with_links.borrow_mut().convert_fks_to_objs(&config);
-        }
-
-        config.pets[0].borrow_mut().name = "Joe".to_string();
-
+        println!("{:?}", deserialised_config);
         println!("{:?}", config);
+
+        assert_eq!(deserialised_config, config);
     }
 
     #[test]
@@ -85,24 +76,20 @@ mod simple {
             pets: vec![pet],
         };
 
-        let mut linked: Vec<Rc<RefCell<dyn Links<_>>>> = vec![];
-
-        for p in &config.persons {
-            linked.push(p.clone());
-        }
-
         let yaml = serde_yaml::to_string(&config).unwrap();
+
+        let deserialised_config: RoommateConfig = serde_yaml::from_str(&yaml).unwrap();
+
+        deserialised_config.link_items();
 
         println!("{}", &yaml);
 
-        for obj_with_links in &linked {
-            obj_with_links.borrow_mut().convert_fks_to_objs(&config);
-        }
-
-        config.pets[0].borrow_mut().name = "Joe".to_string();
-
-        let roommate_pet = &config.persons[0].borrow().pet.upgrade().unwrap();
-        let config_pet = &config.pets[0];
+        let roommate_pet = &deserialised_config.persons[0]
+            .borrow()
+            .pet
+            .upgrade()
+            .unwrap();
+        let config_pet = &deserialised_config.pets[0];
         assert_eq!(roommate_pet, config_pet);
 
         println!("{:?}", roommate_pet);
