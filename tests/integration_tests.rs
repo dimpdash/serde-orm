@@ -7,12 +7,9 @@ use serde_orm::common::Links;
 use self::common::domain::{Dog, Person};
 #[cfg(test)]
 mod simple {
-    use std::collections::HashMap;
+    use std::{borrow::Borrow, mem::MaybeUninit, vec};
 
-    use serde::{Deserialize, Serialize};
-    use serde_orm::common::KeyLink;
-
-    use crate::common::domain::{Roomate, RoommateConfig};
+    use crate::common::domain::{Partner, PartnerConfig, Roomate, RoommateConfig};
 
     use self::common::domain::Config;
     use super::*;
@@ -28,7 +25,6 @@ mod simple {
             data: 10,
             pet: pet.clone(),
         };
-
         let person2 = Person {
             id: 1,
             name: "matthew".to_string(),
@@ -85,7 +81,7 @@ mod simple {
         println!("{}", &yaml);
 
         let roommate_pet = &deserialised_config.persons[0]
-            .borrow()
+            .borrow_mut()
             .pet
             .upgrade()
             .unwrap();
@@ -94,6 +90,48 @@ mod simple {
 
         println!("{:?}", roommate_pet);
         println!("{:?}", config);
+    }
+
+    #[test]
+    fn circular() {
+        let (p1, p2) = unsafe {
+            let p2 = MaybeUninit::uninit();
+
+            let p1 = Rc::new(RefCell::new(Partner {
+                name: "Daniel".to_string(),
+                partner: p2.assume_init(),
+            }));
+
+            let p2 = Rc::new(RefCell::new(Partner {
+                name: "Jess".to_string(),
+                partner: Rc::downgrade(&p1),
+            }));
+
+            p1.borrow_mut().partner = Rc::downgrade(&p2);
+
+            (p1, p2)
+        };
+
+        let config = PartnerConfig {
+            partners: vec![p1, p2],
+        };
+
+        let yaml = serde_yaml::to_string(&config).unwrap();
+
+        let config_deserilized: PartnerConfig = serde_yaml::from_str(yaml.as_str()).unwrap();
+
+        let p1 = &config_deserilized.partners[0];
+        let p2_name_1 = p1
+            .borrow_mut()
+            .partner
+            .upgrade()
+            .unwrap()
+            .borrow_mut()
+            .name
+            .clone();
+        let p2_name_2 = config_deserilized.partners[1].borrow_mut().name.clone();
+
+        assert_eq!(p2_name_1, p2_name_2);
     }
 }
 

@@ -93,6 +93,7 @@ pub struct Partner {
     pub partner: Weak<RefCell<Partner>>,
 }
 
+#[derive(Debug, Default, serde::Serialize, Deserialize)]
 pub struct PartnerConfig {
     pub partners: Vec<Rc<RefCell<Partner>>>,
 }
@@ -128,7 +129,6 @@ impl Links<PartnerConfig> for Partner {
         let key = self.partner.upgrade().unwrap().borrow().name.clone();
         vec![("pet".to_string(), key)]
     }
-
     fn convert_fks_to_objs(&mut self, config: &PartnerConfig) {
         for pet in config.partners.iter() {
             self.partner = Rc::downgrade(&pet);
