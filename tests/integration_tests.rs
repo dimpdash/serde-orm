@@ -86,16 +86,17 @@ mod simple {
 
         println!("{}", &yaml);
 
-        // let roommate_pet = &deserialised_config.persons[0]
-        //     .borrow_mut()
-        //     .pet
-        //     .upgrade()
-        //     .unwrap();
-        // let config_pet = &deserialised_config.pets[0];
-        // assert_eq!(roommate_pet, config_pet);
+        let roommate_pet = &deserialised_config.persons[0]
+            .as_ref()
+            .borrow()
+            .pet
+            .upgrade()
+            .unwrap();
+        let config_pet = &deserialised_config.pets[0];
+        assert_eq!(roommate_pet, config_pet);
 
-        // println!("{:?}", roommate_pet);
-        // println!("{:?}", config);
+        println!("{:?}", roommate_pet);
+        println!("{:?}", config);
     }
 
     #[test]
