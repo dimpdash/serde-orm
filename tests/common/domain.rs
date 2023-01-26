@@ -5,7 +5,7 @@ use std::{cell::RefCell, fmt::Debug, rc::Rc};
 use serde_orm::{common::KeyLink, ser::serialize_data};
 use serde_orm::{common::Linkable, de::deserialize_data};
 
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 
 use serde_orm::common::{ForeignKey, Links};
 
@@ -96,6 +96,26 @@ pub struct Partner {
 #[derive(Debug, Default, serde::Serialize, Deserialize)]
 pub struct PartnerConfig {
     pub partners: Vec<Rc<RefCell<Partner>>>,
+}
+
+impl PartnerConfig {
+    fn get_items_needing_links(&self) -> Vec<Rc<RefCell<dyn Links<Self>>>> {
+        let mut linked: Vec<Rc<RefCell<dyn Links<Self>>>> = vec![];
+
+        for p in &self.partners {
+            linked.push(p.clone());
+        }
+
+        linked
+    }
+
+    pub fn link_items(&self) {
+        let linked = self.get_items_needing_links();
+
+        for obj_with_links in &linked {
+            obj_with_links.borrow_mut().convert_fks_to_objs(&self);
+        }
+    }
 }
 
 impl Links<Config> for Person {
