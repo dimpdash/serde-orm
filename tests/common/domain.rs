@@ -119,11 +119,6 @@ impl PartnerConfig {
 }
 
 impl Links<Config> for Person {
-    fn get_foreign_keys(&self) -> Vec<ForeignKey> {
-        let key = self.pet.get_key();
-        vec![("pet".to_string(), key)]
-    }
-
     fn convert_fks_to_objs(&mut self, config: &Config) {
         for pet in config.pets.iter() {
             self.pet = pet.clone();
@@ -132,11 +127,6 @@ impl Links<Config> for Person {
 }
 
 impl Links<RoommateConfig> for Roomate {
-    fn get_foreign_keys(&self) -> Vec<ForeignKey> {
-        let key = self.pet.get_key();
-        vec![("pet".to_string(), key)]
-    }
-
     fn convert_fks_to_objs(&mut self, config: &RoommateConfig) {
         for pet in config.pets.iter() {
             self.pet = Rc::downgrade(&pet);
@@ -145,10 +135,6 @@ impl Links<RoommateConfig> for Roomate {
 }
 
 impl Links<PartnerConfig> for Partner {
-    fn get_foreign_keys(&self) -> Vec<ForeignKey> {
-        let key = self.partner.upgrade().unwrap().borrow().name.clone();
-        vec![("pet".to_string(), key)]
-    }
     fn convert_fks_to_objs(&mut self, config: &PartnerConfig) {
         for pet in config.partners.iter() {
             self.partner = Rc::downgrade(&pet);
